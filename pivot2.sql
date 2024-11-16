@@ -1,11 +1,16 @@
 declare @cols nvarchar(max)
+declare @dyncols nvarchar(max)
 declare @sql nvarchar(max)
 
 SELECT @cols = STRING_AGG(QUOTENAME(n), ',')
 FROM (SELECT DISTINCT SUBSTRING(name, CHARINDEX('.', name) + 1, LEN(name) - CHARINDEX('.', name)) as n FROM dbo.Services) as x;
 --print @cols
 
-SET @sql = N'
+SELECT @dyncols = STRING_AGG(QUOTENAME(n) + ' NVARCHAR(50)', ',')
+FROM (SELECT DISTINCT '.' + service_name + '(' + price + ')' as n FROM dbo.Prices) as x;
+
+SET @sql = N' DECLARE @temp TABLE ([username] VARCHAR(50), ' + @dyncols + ')
+INSERT INTO @temp
 SELECT  *
 FROM 
 (
@@ -19,6 +24,10 @@ FROM
 PIVOT
 (
 	SUM(price_value) FOR service_name in (' + @cols + ')
-) z';
+) z
+
+SELECT * FROM @temp';
 
 exec sp_executesql @sql;
+
+
